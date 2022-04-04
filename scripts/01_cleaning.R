@@ -2,7 +2,7 @@
 ## danbeck@ou.edu
 
 ## clean environment & plots
-rm(list=ls()) 
+rm(list=ls())
 graphics.off()
 
 ## libraries
@@ -10,8 +10,7 @@ library(ape)
 library(plyr)
 
 ## load in hantavirus data
-setwd("~/Desktop/hantaro/data/raw")
-hdata=read.csv("Muroid Taxonomy and Traits with Hantavirus Evidence.csv",header=T)
+hdata=read.csv(file.path("data", "raw", "Muroid Taxonomy and Traits with Hantavirus Evidence.csv"),header=T)
 
 ## fix missing PCR studies
 hdata$X..papers.PCR.pos=ifelse(hdata$Species_Name=="Akodon_simulator",1,hdata$X..papers.PCR.pos)
@@ -21,7 +20,7 @@ hdata$X..papers.PCR.pos=ifelse(hdata$Species_Name=="Calomys_callosus",1,hdata$X.
 hdata$IUCNname=hdata$Notes.regarding.IUCN.status
 
 ## load in traits
-traits=read.csv("pan for PNAS Dryad.csv",header=T)
+traits=read.csv(file.path("data", "raw", "pan for PNAS Dryad.csv"),header=T)
 traits$X=NULL
 
 ## remove family
@@ -35,11 +34,10 @@ rm(trim,start,end)
 traits=traits[!duplicated(traits$Rodents),]
 
 ## load Upham phylogeny
-setwd("~/Desktop/hantaro/phylo")
-tree=read.nexus('MamPhy_fullPosterior_BDvr_Completed_5911sp_topoCons_NDexp_MCC_v2_target.tre')
+tree=read.nexus(file.path('phylo', 'MamPhy_fullPosterior_BDvr_Completed_5911sp_topoCons_NDexp_MCC_v2_target.tre'))
 
 ## load in taxonomy
-taxa=read.csv('taxonomy_mamPhy_5911species.csv',header=T)
+taxa=read.csv(file.path('phylo','taxonomy_mamPhy_5911species.csv'),header=T)
 
 ## simplify to genus
 gtaxa=taxa[!duplicated(taxa$gen),]
@@ -96,12 +94,11 @@ miss=miss[miss$intree=='missing' | miss$intraits=='missing',]
 miss=miss[order(miss$intree,miss$intraits),]
 
 ## export
-setwd("~/Desktop/hantaro/data/names")
-write.csv(miss,'hantaro name mismatch.csv')
+write.csv(miss,file.path('data', 'names', 'hantaro name mismatch.csv'))
 rm(miss)
 
 ## load in revised names with Than edits
-fix=read.csv('hantaro name mismatch_edit_TM.csv',header=T)
+fix=read.csv(file.path('data', 'names', 'hantaro name mismatch_edit_TM.csv'),header=T)
 
 ## merge
 fix=fix[c('tip','treename','traitname','proxy')]
@@ -209,6 +206,5 @@ data=merge(data,cites,by='treename')
 rm(cites,citations,i,counter)
 
 ## export files
-setwd("~/Desktop/hantaro/data/clean files")
-write.csv(data,'hantaro cleaned response and traits.csv')
-saveRDS(rtree,'rodent phylo trim.rds')
+write.csv(data, file.path('data', 'clean files', 'hantaro cleaned response and traits.csv'))
+saveRDS(rtree,file.path('data', 'clean files', 'rodent phylo trim.rds'))

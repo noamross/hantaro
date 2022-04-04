@@ -10,13 +10,12 @@ library(sp)
 library(velox)
 
 
-setwd("~/Github/hantaro")
 
 set.seed(12345)
 
 # Read in the data
 
-pred <- read_csv("./data/clean files/hantaro predictions.csv")
+pred <- read_csv(file.path("data", "clean files", "hantaro predictions.csv"))
 
 # 1. Threshold the results
 
@@ -80,7 +79,7 @@ table(pred$pred_comp[pred$competence==0] > t.comp$pred_comp)
 
 pred %>% filter(competence==0, pred_comp > t.comp$pred_comp)
 
-# Pull out the relevant lists 
+# Pull out the relevant lists
 
 pred %>% filter(competence==1) %>% pull(treename) %>% gsub("_"," ",.) -> known.comp
 
@@ -107,10 +106,10 @@ r <- disaggregate(getData("worldclim",var="alt",res=2.5)*0,2) # Make a blank ras
 
 # Create four layers
 
-iucn.1 <- iucn[iucn$binomial %in% known.comp,] 
-iucn.2 <- iucn[iucn$binomial %in% known.pcr,] 
-iucn.3 <- iucn[iucn$binomial %in% pred.comp,] 
-iucn.4 <- iucn[iucn$binomial %in% pred.pcr,] 
+iucn.1 <- iucn[iucn$binomial %in% known.comp,]
+iucn.2 <- iucn[iucn$binomial %in% known.pcr,]
+iucn.3 <- iucn[iucn$binomial %in% pred.comp,]
+iucn.4 <- iucn[iucn$binomial %in% pred.pcr,]
 
 map.knc <- (fasterize(iucn.1, r, fun="sum"))
 map.knp <- (fasterize(iucn.2, r, fun="sum"))
@@ -124,8 +123,8 @@ map.knp <- fix(map.knp)
 map.prc <- fix(map.prc)
 map.prp <- fix(map.prp)
 
-raster::stack(map.knp, map.knc, map.prp, map.prc) %>% 
-  crop(c(-170,-25,-90,90)) %>% 
+raster::stack(map.knp, map.knc, map.prp, map.prc) %>%
+  crop(c(-170,-25,-90,90)) %>%
   raster::trim() -> maps
 
 names(maps) <- c('KnownPCR', 'KnownComp', 'PredPCR', 'PredComp')
@@ -138,10 +137,10 @@ library(RColorBrewer)
 mycolors <- colorRampPalette(rev(brewer.pal(10,"Spectral")))(21)
 mycolors[1] <- "#C0C0C0"
 
-rasterVis::levelplot(maps,  
+rasterVis::levelplot(maps,
                      col.regions = mycolors,
                      #at = seq(0, 15, 1),
-                     alpha = 0.5, 
+                     alpha = 0.5,
                      scales=list(alternating=FALSE),
                      par.strip.text=list(cex=0),
                      xlab = NULL, ylab = NULL,

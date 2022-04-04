@@ -3,7 +3,7 @@
 ## updated 01/30/2022
 
 ## clean environment & plots
-rm(list=ls()) 
+rm(list=ls())
 graphics.off()
 
 ## libraries
@@ -21,13 +21,12 @@ library(caper)
 library(phylofactor)
 library(ggtree)
 library(treeio)
-library(caret) 
+library(caret)
 library(InformationValue)
 library(mgcv)
 
 ## load files
-setwd("~/Desktop/hantaro/data/clean files")
-data=read.csv('hantaro cleaned response and traits.csv')
+data=read.csv(file.path('data', 'clean files', 'hantaro cleaned response and traits.csv'))
 
 ## classify true negatives
 data$type=ifelse(data$studies>0 & data$hPCR==0 & data$competence==0,"true negative","other")
@@ -49,10 +48,10 @@ dums=dums[!duplicated(dums$gen),]
 
 ## ensure all factor
 for(i in 1:ncol(dums)){
-  
+
   ## column as factor
   dums[,i]=factor(dums[,i])
-  
+
 }
 
 ## merge
@@ -108,8 +107,7 @@ mval$variables=rownames(mval)
 names(mval)=c("comp","column")
 
 ## visualize distribution of NA
-setwd("~/Desktop/hantaro/figs")
-png("Figure S1.png",width=4,height=4,units="in",res=600)
+png(file.path("figs", "Figure S1.png"),width=4,height=4,units="in",res=600)
 ggplot(mval[!mval$column%in%c("gen","treename","studies","hPCR","competence","tip","fam"),],
        aes(comp))+
   geom_histogram(bins=50)+
@@ -174,13 +172,12 @@ ts1$coverage=ts1$comp
 ts1$comp=NULL
 
 ## write file
-setwd("~/Desktop/hantaro/figs")
-write.csv(ts1,"Table S1.csv")
+write.csv(ts1,file.path("figs","Table S1.csv"))
 
 ## hyperparameter tuning ifelse
 hok="ok"
 if(hok!="ok"){
-  
+
 ## hyperparameter grid
 hgrid=expand.grid(n.trees=5000,
                   interaction.depth=c(2,3,4),
@@ -205,29 +202,29 @@ hgrid$id2=factor(as.numeric(factor(hgrid$id)))
 
 ## function to assess each hyperpar combination
 hfit=function(row,response){
-  
+
   ## make new data
   ndata=set
-  
+
   ## correct response
   ndata$response=ndata[response][,1]
-  
+
   ## remove raw
   ndata$hPCR=NULL
   ndata$competence=NULL
-  
+
   ## use rsample to split
   set.seed(hgrid$seed[row])
   split=initial_split(ndata,prop=0.7,strata="response")
-  
+
   ## test and train
   dataTrain=training(split)
   dataTest=testing(split)
-  
+
   ## yTest and yTrain
   yTrain=dataTrain$response
   yTest=dataTest$response
-  
+
   ## BRT
   set.seed(1)
   gbmOut=gbm(response ~ . ,data=dataTrain,
@@ -240,30 +237,30 @@ hfit=function(row,response){
              bag.fraction=0.5,train.fraction=1,
              n.cores=1,
              verbose=F)
-  
+
   ## performance
   par(mfrow=c(1,1),mar=c(4,4,1,1))
   best.iter=gbm.perf(gbmOut,method="cv")
-  
+
   ## predict with test data
   preds=predict(gbmOut,dataTest,n.trees=best.iter,type="response")
-  
+
   ## known
   result=dataTest$response
-  
+
   ## sensitiviy and specificity
   sen=InformationValue::sensitivity(result,preds)
   spec=InformationValue::specificity(result,preds)
-  
+
   ## AUC on train
   auc_train=gbm.roc.area(yTrain,predict(gbmOut,dataTrain,n.trees=best.iter,type="response"))
-  
+
   ## AUC on test
   auc_test=gbm.roc.area(yTest,predict(gbmOut,dataTest,n.trees=best.iter,type="response"))
-  
+
   ## print
   print(paste("hpar row ",row," done; test AUC is ",auc_test,sep=""))
-  
+
   ## save outputs
   return(list(best=best.iter,
               trainAUC=auc_train,
@@ -316,15 +313,13 @@ search=rbind.data.frame(csearch,hsearch)
 search$type=factor(search$type,levels=c("PCR","competence"))
 
 ## export
-setwd("~/Desktop/hantaro/figs")
-write.csv(search,"par tuning data summary.csv")
+write.csv(search,file.path("figs","par tuning data summary.csv"))
 
 }else{
-  
+
 ## load
-setwd("~/Desktop/hantaro/figs")
-search=read.csv("par tuning data summary.csv")
-  
+search=read.csv(file.path("figs","par tuning data summary.csv"))
+
 }
 
 ## factor parameters
@@ -382,8 +377,7 @@ search2$measure=factor(search2$measure,
                        levels=c("test AUC","sensitivity","specificity"))
 
 ## visualize
-setwd("~/Desktop/hantaro/figs")
-png("Figure S2.png",width=5,height=8,units="in",res=600)
+png(file.path("figs","Figure S2.png"),width=5,height=8,units="in",res=600)
 set.seed(1)
 ggplot(search2,aes(shrinkage,value,
                    colour=interaction.depth,fill=interaction.depth))+
@@ -415,47 +409,47 @@ rm(search,search2,hok,mod)
 
 ## brt function to use different data partitions
 brt_part=function(seed,response){
-  
+
   ## make new data
   ndata=set
-  
+
   ## correct response
   ndata$response=ndata[response][,1]
-  
+
   ## remove raw
   ndata$hPCR=NULL
   ndata$competence=NULL
-  
+
   ## fix cites if response
   if(response=="cites"){
-    
+
     ## plus 1 for 0
     ndata$cites=ifelse(ndata$cites==0,1,ndata$cites)
-    
+
   }else{
-    
+
     ndata=ndata
-    
+
   }
-  
+
   ## use rsample to split
   set.seed(seed)
   split=initial_split(ndata,prop=0.7,strata="response")
-  
+
   ## test and train
   dataTrain=training(split)
   dataTest=testing(split)
-  
+
   ## yTest and yTrain
   yTrain=dataTrain$response
   yTest=dataTest$response
-  
+
   ## dist
   dist=ifelse(response=="cites","poisson","bernoulli")
-  
+
   ## n.trees
   nt=ifelse(response=="cites",10000,5000)
-  
+
   ## BRT
   set.seed(1)
   gbmOut=gbm(response ~ . ,data=dataTrain,
@@ -472,69 +466,69 @@ brt_part=function(seed,response){
   ## performance
   par(mfrow=c(1,1),mar=c(4,4,1,1))
   best.iter=gbm.perf(gbmOut,method="cv")
-  
+
   ## predict with test data
   preds=predict(gbmOut,dataTest,n.trees=best.iter,type="response")
-  
+
   ## known
   result=dataTest$response
-  
+
   ## sensitiviy and specificity
   sen=InformationValue::sensitivity(result,preds)
   spec=InformationValue::specificity(result,preds)
-  
+
   ## AUC on train
   auc_train=gbm.roc.area(yTrain,predict(gbmOut,dataTrain,n.trees=best.iter,type="response"))
-  
+
   ## AUC on test
   auc_test=gbm.roc.area(yTest,predict(gbmOut,dataTest,n.trees=best.iter,type="response"))
-  
+
   ## skip if poisson
   if(response=="cites"){
-    
+
     perf=NA
-    
+
   }else{
-  
+
     ## inner loop if yTest is all 0
     if(var(yTest)==0){
-      
+
       perf=NA
     }else{
-      
+
     ## ROC
     pr=prediction(preds,dataTest$response)
     perf=performance(pr,measure="tpr",x.measure="fpr")
     perf=data.frame(perf@x.values,perf@y.values)
     names(perf)=c("fpr","tpr")
-    
+
     ## add seed
     perf$seed=seed
-    
+
     }
   }
-  
+
   ## relative importance
   bars=summary(gbmOut,n.trees=best.iter,plotit=F)
   bars$rel.inf=round(bars$rel.inf,2)
-  
+
   ## predict with cites
   preds=predict(gbmOut,data,n.trees=best.iter,type="response")
   pred_data=data[c("tip",'treename',"fam","gen","hPCR","competence")]
   pred_data$pred=preds
   pred_data$type=response
-  
+
   ## predict with mean cites
   pdata=data
   pdata$cites=mean(pdata$cites)
   pred_data$cpred=predict(gbmOut,pdata,n.trees=best.iter,type="response")
-  
+
   ## sort
   pred_data=pred_data[order(pred_data$pred,decreasing=T),]
-  
+
   ## print
   print(paste("BRT ",seed," done; test AUC = ",auc_test,sep=""))
-  
+
   ## save outputs
   return(list(mod=gbmOut,
               best=best.iter,
@@ -556,12 +550,11 @@ pcr_brts=lapply(1:smax,function(x) brt_part(seed=x,response="hPCR"))
 comp_brts=lapply(1:smax,function(x) brt_part(seed=x,response="competence"))
 
 ## write to files
-setwd("~/Desktop/hantaro/data/clean files")
-saveRDS(pcr_brts,"pcr brts.rds")
-saveRDS(comp_brts,"comp brts.rds")
+saveRDS(pcr_brts,file.path("data", "clean files", "pcr brts.rds"))
+saveRDS(comp_brts,file.path("data", "clean files", "comp brts.rds"))
 
 ## run wos brts
 pm_brts=lapply(1:(smax-1),function(x) brt_part(seed=x,response="cites"))
 
 ## write
-saveRDS(pm_brts,"pm brts.rds")
+saveRDS(pm_brts,file.path("data", "clean files", "pm brts.rds"))

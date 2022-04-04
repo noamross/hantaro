@@ -2,7 +2,7 @@
 ## danbeck@ou.edu
 
 ## clean environment & plots
-rm(list=ls()) 
+rm(list=ls())
 graphics.off()
 
 ## libraries
@@ -22,10 +22,9 @@ library(ggpubr)
 library(plyr)
 
 ## load files
-setwd("~/Desktop/hantaro/data/clean files")
-pcr_brts=readRDS("pcr brts.rds")
-comp_brts=readRDS("comp brts.rds")
-pm_brts=readRDS("pm brts.rds")
+pcr_brts=readRDS(file.path("data", "clean files", "pcr brts.rds"))
+comp_brts=readRDS(file.path("data", "clean files", "comp brts.rds"))
+pm_brts=readRDS(file.path("data", "clean files", "pm brts.rds"))
 
 ## index non-missing
 pcr_keep=which(!is.na(sapply(pcr_brts,function(x) x$testAUC)))
@@ -74,27 +73,27 @@ tfun=function(measure){
                    seed=c(sapply(pcr_brts,function(x) x$seed),
                           sapply(comp_brts,function(x) x$seed)))
   rm(n)
-  
+
   ## factor
   adata$response=factor(adata$response,levels=c('infection','competence'))
-  
+
   ## make jitter position
   adata$x=as.numeric(factor(adata$response))
   set.seed(1)
   adata$xj=jitter(adata$x,0.5)
-  
+
   ## fix response
   adata$response2=revalue(adata$response,c("infection"="RT-PCR",
                                            "competence"="virus isolation"))
-  
+
   ## t-test
   tsum=t.test(y~response,data=adata,
          alternative='two.sided',
-         var.equal=F,paired=F)  
-  
+         var.equal=F,paired=F)
+
   ## effect size
   csum=cohens_d(y~response,data=adata,paired=F,var.equal=F)
-  
+
   ## return
   return(list(adata=adata,tsum=tsum,csum=csum))
 }
@@ -137,8 +136,7 @@ sdata=rbind.data.frame(data1,data2)
 rm(data1,data2)
 
 ## supplement
-setwd("~/Desktop/hantaro/figs")
-png("Figure S3.png",width=4,height=5,units="in",res=300)
+png(file.path("figs", "Figure S3.png"),width=4,height=5,units="in",res=300)
 set.seed(1)
 ggplot(sdata)+
   #geom_violin(aes(x=x,y=auc,group=x),trim=T,scale="count",width=0.5)+
@@ -237,8 +235,7 @@ ts5$feature=ts5$var
 ts5=ts5[c("feature","pcr_imp","comp_imp","pcr_rank","comp_rank")]
 
 ## Table S5
-setwd("~/Desktop/hantaro/figs")
-write.csv(ts5,"Table S5.csv")
+write.csv(ts5,file.path("figs", "Table S5.csv"))
 
 ## correlate
 cor.test(ranks$pcr_rank,ranks$comp_rank,method="spearman")
@@ -262,7 +259,7 @@ ranks2$select=ifelse(ranks2$resid>10,"yes","no")
 ## flag if consistently low or consistently high
 n=7
 ranks2$select=ifelse(ranks2$comp_rank<n & ranks2$pcr_rank<n,"yes",ranks2$select)
-ranks2$select=ifelse(ranks2$comp_rank%in%tail(1:nrow(ranks2),n) & 
+ranks2$select=ifelse(ranks2$comp_rank%in%tail(1:nrow(ranks2),n) &
                        ranks2$pcr_rank%in%tail(1:nrow(ranks2),n),"yes",ranks2$select)
 
 ## flag if high or low ranks
@@ -304,8 +301,7 @@ f2B=ggplot(ranks2,aes(pcr_rank,comp_rank))+
   theme(axis.title.y=element_text(margin=margin(t=0,r=10,b=0,l=0)))
 
 ## Figure 2
-setwd("~/Desktop/hantaro/figs")
-png("Figure 2.png",width=7,height=3.5,units="in",res=300)
+png(file.path("figs", "Figure 2.png",width=7,height=3.5,units="in",res=300))
 ggarrange(f2A,f2B,ncol=2,widths=c(1,1),
           labels=c("(a)","(b)"),
           label.x=c(0.21,0.18),
@@ -320,7 +316,7 @@ library(gbm)
 
 ## function for compiling across BRTs for a given predictor, all else equal
 pdp_agg=function(mod,feature){
-  
+
   ## just the plot function
   pdep=plot(mod$mod,feature,
             return.grid=T,
@@ -328,70 +324,70 @@ pdp_agg=function(mod,feature){
             plot=F,
             continuous.resolution=200,
             type="response")
-  
+
   ## add seed
   pdep$seed=unique(mod$roc$seed)
-  
+
   ## save predictor
   pdep$predictor=pdep[feature][,1]
-  
+
   ## order
   pdep=pdep[order(pdep$predictor),]
-  
+
   ## get rank
   pdep$rank=1:nrow(pdep)
-  
+
   ## save yhat
   pdep$yhat=pdep$y
-  
+
   ## return
   return(pdep)
-  
+
 }
 
 ## function to plot
 pdp_plot=function(bmods,feature){
-  
+
   ## pdp_agg
   agg=do.call(rbind,lapply(bmods,function(x) pdp_agg(x,feature)))
-  
+
   ## get class of the feature
   cl=class(data[feature][,1])
-  
+
   ## if else based on type
   if(cl%in%c("numeric","integer")){
-    
+
     ## get element-wise means
     x=with(agg,tapply(predictor,rank,mean))
     y=with(agg,tapply(yhat,rank,mean))
-    
+
     ## save as mean
     pmean=data.frame(predictor=x,yhat=y)
-    
+
     ## get yrange
     yrange=range(agg$yhat,pmean$yhat,na.rm=T)
-    
+
     ## get histogram
     hi=hist(data[feature][,1],breaks=30,plot=F)
     hi=with(hi,data.frame(breaks[1:(length(breaks)-1)],counts))
     names(hi)=c("mids","counts")
-    
+
     ## ggplot it
     ggplot(agg,aes(predictor,yhat,group=seed))+
-      
+
       ## add histogram
       geom_segment(data=hi,inherit.aes=F,
                    aes(x=mids,xend=mids,
                        y=yrange[1],yend=plotrix::rescale(counts,yrange)),
                    size=1,colour="grey",alpha=0.25)+
-      
+
       ## add lines
       geom_line(size=1,alpha=0.25,colour="grey")+
-      
+
       ## add mean
       geom_line(data=pmean,size=2,inherit.aes=F,
                 aes(predictor,yhat))+
-      
+
       ## theme
       theme_bw()+
       theme(axis.text=element_text(size=6),
@@ -401,53 +397,53 @@ pdp_plot=function(bmods,feature){
       theme(panel.grid.major=element_blank(),panel.grid.minor=element_blank())+
       labs(x=feature,y="marginal effect")+
       scale_y_continuous(labels=scales::number_format(accuracy=0.01))
-    
+
     ## end numeric
   }else{ ## factor-based plot
-    
+
     ## get element-wise means
     y=with(agg,tapply(yhat,predictor,mean))
-    
+
     ## save as mean
     #pmean=data.frame(predictor=x,yhat=y)
     pmean=data.frame(y)
     names(pmean)="yhat"
     pmean$predictor=rownames(pmean)
     rownames(pmean)=NULL
-    
+
     ## make temp data
     temp=data
     temp$predictor=temp[feature][,1]
-    
+
     ## do nothing
     agg=agg
     pmean=pmean
     temp=temp
-    
+
     ## get yrange
     yrange=range(agg$yhat,pmean$yhat,na.rm=T)
-    
+
     ## fix temp to yrange
     temp$yhat=ifelse(temp$hPCR==1,max(yrange),min(yrange))
-    
+
     ## ggplot with rug
     set.seed(1)
     ggplot(agg,aes(predictor,yhat,group=seed))+
-      
+
       ## add individual BRTs
       geom_jitter(size=1,alpha=0.25,colour="grey",width=0.1)+
-      
+
       ## add mean
       geom_point(data=pmean,size=2,inherit.aes=F,shape=15,
                  aes(predictor,yhat))+
-      
+
       ## add rug
       geom_rug(data=temp,inherit.aes=F,
                aes(predictor,yhat),
                sides="b",position="jitter",
                colour="grey",alpha=0.25,
                na.rm=T)+
-      
+
       ## theme
       theme_bw()+
       theme(axis.text=element_text(size=6),
@@ -458,14 +454,13 @@ pdp_plot=function(bmods,feature){
       labs(x=feature,y="marginal effect")+
       scale_y_continuous(limits=c(yrange[1]-0.01,yrange[2]+0.01),
                          labels=scales::number_format(accuracy=0.01))
-    
+
   }
-  
+
 }
 
 ## load files
-setwd("~/Desktop/hantaro/data/clean files")
-data=read.csv('hantaro cleaned response and traits.csv')
+data=read.csv(file.path("data", "clean files", 'hantaro cleaned response and traits.csv'))
 
 ## make binary columns for genus
 dums=dummy_cols(data["gen"])
@@ -475,10 +470,10 @@ dums=dums[!duplicated(dums$gen),]
 
 ## ensure all factor
 for(i in 1:ncol(dums)){
-  
+
   ## column as factor
   dums[,i]=factor(dums[,i])
-  
+
 }
 
 ## merge
@@ -513,8 +508,7 @@ c10=pdp_plot(comp_brts,ranks2$var[10])
 
 ## compile
 library(patchwork)
-setwd("~/Desktop/hantaro/figs")
-png("Figure S4.png",width=4,height=10,units="in",res=300)
+png(file.path("figs", "Figure S4.png"),width=4,height=10,units="in",res=300)
 p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+
   c1+c2+c3+c4+c5+c6+c7+c8+c9+c10+plot_layout(nrow=10,ncol=2,byrow=F)
 dev.off()
@@ -600,7 +594,7 @@ apreds$type2=revalue(apreds$type2,
 
 ## figure 3a
 library(awtools)
-cc=mpalette[2:4] 
+cc=mpalette[2:4]
 cc=rev(cc)
 f3A=ggplot(apreds,aes(cpred))+
   geom_density(aes(fill=cat,colour=cat),alpha=0.5)+
@@ -649,8 +643,7 @@ f3B=ggplot(apreds2,aes(pred_pcr,pred_comp))+
          fill=guide_legend(title="(a) orthohantavirus positivity"))
 
 ## combine
-setwd("~/Desktop/hantaro/figs")
-png("Figure 3.png",width=6.5,height=4,units="in",res=300)
+png(file.path("figs", "Figure 3.png"),width=6.5,height=4,units="in",res=300)
 f3=ggarrange(f3A,f3B,common.legend=T)
 f3
 dev.off()
@@ -661,16 +654,14 @@ preds$fam=NULL
 preds$gen=NULL
 
 ## write file
-setwd("~/Desktop/hantaro/data/clean files")
-write.csv(preds,"hantaro predictions.csv")
+write.csv(preds,file.path("data", "clean files", "hantaro predictions.csv"))
 
 ## test correlation
 cor(apreds2$pred_pcr,apreds2$pred_comp,method='spearman')
 cor.test(apreds2$pred_pcr,apreds2$pred_comp,method='spearman')
 
 ## load phylogeny
-setwd("~/Desktop/hantaro/data/clean files")
-rtree=readRDS('rodent phylo trim.rds')
+rtree=readRDS(file.path("data", "clean files", 'rodent phylo trim.rds'))
 
 ## setdiff
 apreds2$tree=ifelse(apreds2$treename%in%setdiff(apreds2$treename,rtree$tip.label),'cut','keep')
@@ -713,11 +704,11 @@ taxonomy$taxonomy=as.character(taxonomy$taxonomy)
 
 ## Holm rejection procedure
 HolmProcedure <- function(pf,FWER=0.05){
-  
+
   ## get split variable
   cs=names(coef(pf$models[[1]]))[-1]
   split=ifelse(length(cs)>1,cs[3],cs[1])
-  
+
   ## obtain p values
   if (pf$models[[1]]$family$family%in%c('gaussian',"Gamma","quasipoisson")){
     pvals <- sapply(pf$models,FUN=function(fit) summary(fit)$coefficients[split,'Pr(>|t|)'])
@@ -725,11 +716,11 @@ HolmProcedure <- function(pf,FWER=0.05){
     pvals <- sapply(pf$models,FUN=function(fit) summary(fit)$coefficients[split,'Pr(>|z|)'])
   }
   D <- length(pf$tree$tip.label)
-  
+
   ## this is the line for Holm's sequentially rejective cutoff
   keepers <- pvals<=(FWER/(2*D-3 - 2*(0:(pf$nfactors-1))))
-  
-  
+
+
   if (!all(keepers)){
     nfactors <- min(which(!keepers))-1
   } else {
@@ -744,77 +735,77 @@ cladeget=function(pf,factor){
   return(spp)
 }
 
-## summarize pf object 
+## summarize pf object
 pfsum=function(pf){
-  
+
   ## get formula
   chars=as.character(pf$frmla.phylo)[-1]
-  
+
   ## response
   resp=chars[1]
-  
+
   ## fix
   resp=ifelse(resp=='cbind(pos, neg)','prevalence',resp)
-  
+
   ## holm
   hp=HolmProcedure(pf)
-  
+
   ## save model
   model=chars[2]
-  
+
   ## set key
   setkey(pf$Data,'Species')
-  
+
   ## make data
   dat=data.frame(pf$Data)
-  
+
   ## make clade columns in data
   for(i in 1:hp){
-    
+
     dat[,paste0(resp,'_pf',i)]=ifelse(dat$Species%in%cladeget(pf,i),'factor','other')
-    
+
   }
-  
+
   ## make data frame to store taxa name, response, mean, and other
   results=data.frame(matrix(ncol=6, nrow = hp))
   colnames(results)=c('factor','taxa','tips','node',"clade",'other')
-  
+
   ## set taxonomy
   taxonomy=dat[c('Species','taxonomy')]
   taxonomy$taxonomy=as.character(taxonomy$taxonomy)
-  
+
   ## loop
   for(i in 1:hp){
-    
+
     ## get taxa
     tx=pf.taxa(pf,taxonomy,factor=i)$group1
-    
+
     ## get tail
     tx=sapply(strsplit(tx,'; '),function(x) tail(x,1))
-    
+
     ## combine
     tx=paste(tx,collapse=', ')
-    
+
     # save
     results[i,'factor']=i
     results[i,'taxa']=tx
-    
+
     ## get node
     tips=cladeget(pf,i)
     node=ggtree::MRCA(pf$tree,tips)
     results[i,'tips']=length(tips)
     results[i,'node']=ifelse(is.null(node) & length(tips)==1,'species',
                              ifelse(is.null(node) & length(tips)!=1,NA,node))
-    
+
     ## get means
     ms=(tapply(dat[,resp],dat[,paste0(resp,'_pf',i)],mean))
-    
+
     ## add in
     results[i,'clade']=ms['factor']
     results[i,'other']=ms['other']
-    
+
   }
-  
+
   ## return
   return(list(set=dat,results=results))
 }
@@ -858,8 +849,7 @@ predpfs$clade=round(predpfs$clade,2)
 predpfs$other=round(predpfs$other,2)
 
 ## write
-setwd("~/Desktop/hantaro/figs")
-write.csv(predpfs,"Table S6.csv")
+write.csv(predpfs, file.path("figs", "Table S6.csv"))
 
 ## combine tree and data
 dtree=treeio::full_join(as.treedata(cdata$phy),cdata$data,by="label")
@@ -892,7 +882,7 @@ samp=merge(samp,apreds2[c("treename","cat")],by="treename",all.x=T)
 ## pcr
 gg=pbase
 for(i in 1:nrow(pcrpred_pf_results)){
-  
+
   gg=gg+
     geom_hilight(node=pcrpred_pf_results$node[i],
                  alpha=ifelse(pcrpred_pf_results$tips[i]/Ntip(cdata$phy)<0.5,0.5,0.25),
@@ -909,7 +899,7 @@ p1=gg+
 ## competence
 gg=pbase
 for(i in 1:nrow(comppred_pf_results)){
-  
+
   gg=gg+
     geom_hilight(node=comppred_pf_results$node[i],
                  alpha=ifelse(comppred_pf_results$tips[i]/Ntip(cdata$phy)<0.5,0.5,0.25),
@@ -932,8 +922,7 @@ f3C=ggarrange(p1,p2,
               font.label=list(face="plain",size=13))
 
 ## revise fig 3
-setwd("~/Desktop/hantaro/figs")
-png("Figure 3.png",width=7,height=7.25,units="in",res=300)
+png(file.path("figs", "Figure 3.png"),width=7,height=7.25,units="in",res=300)
 #f3+f3C+plot_layout(nrow=2,heights=c(1.25,1))
 ggarrange(f3,f3C,nrow=2,heights=c(1.1,1))
 #f3B+f3C+plot_layout(nrow=2,heights=c(1,1.5))
