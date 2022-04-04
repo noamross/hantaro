@@ -14,8 +14,8 @@ library(treeio)
 library(ggtree)
 
 ## load files
-data=read.csv(file.path('data', 'clean files', 'hantaro cleaned response and traits.csv'))
-rtree=readRDS(file.path('data', 'clean files', 'rodent phylo trim.rds'))
+data=read.csv(file.path('data', 'clean_files', 'hantaro cleaned response and traits.csv'))
+rtree=readRDS(file.path('data', 'clean_files', 'rodent phylo trim.rds'))
 
 ## setdiff
 data$tree=ifelse(data$treename%in%setdiff(data$treename,rtree$tip),'cut','keep')

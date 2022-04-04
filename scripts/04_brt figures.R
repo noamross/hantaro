@@ -22,9 +22,9 @@ library(ggpubr)
 library(plyr)
 
 ## load files
-pcr_brts=readRDS(file.path("data", "clean files", "pcr brts.rds"))
-comp_brts=readRDS(file.path("data", "clean files", "comp brts.rds"))
-pm_brts=readRDS(file.path("data", "clean files", "pm brts.rds"))
+pcr_brts=readRDS(file.path("data", "clean_files", "pcr brts.rds"))
+comp_brts=readRDS(file.path("data", "clean_files", "comp brts.rds"))
+pm_brts=readRDS(file.path("data", "clean_files", "pm brts.rds"))
 
 ## index non-missing
 pcr_keep=which(!is.na(sapply(pcr_brts,function(x) x$testAUC)))
@@ -460,7 +460,7 @@ pdp_plot=function(bmods,feature){
 }
 
 ## load files
-data=read.csv(file.path("data", "clean files", 'hantaro cleaned response and traits.csv'))
+data=read.csv(file.path("data", "clean_files", 'hantaro cleaned response and traits.csv'))
 
 ## make binary columns for genus
 dums=dummy_cols(data["gen"])
@@ -654,14 +654,14 @@ preds$fam=NULL
 preds$gen=NULL
 
 ## write file
-write.csv(preds,file.path("data", "clean files", "hantaro predictions.csv"))
+write.csv(preds,file.path("data", "clean_files", "hantaro predictions.csv"))
 
 ## test correlation
 cor(apreds2$pred_pcr,apreds2$pred_comp,method='spearman')
 cor.test(apreds2$pred_pcr,apreds2$pred_comp,method='spearman')
 
 ## load phylogeny
-rtree=readRDS(file.path("data", "clean files", 'rodent phylo trim.rds'))
+rtree=readRDS(file.path("data", "clean_files", 'rodent phylo trim.rds'))
 
 ## setdiff
 apreds2$tree=ifelse(apreds2$treename%in%setdiff(apreds2$treename,rtree$tip.label),'cut','keep')

@@ -26,7 +26,7 @@ library(InformationValue)
 library(mgcv)
 
 ## load files
-data=read.csv(file.path('data', 'clean files', 'hantaro cleaned response and traits.csv'))
+data=read.csv(file.path('data', 'clean_files', 'hantaro cleaned response and traits.csv'))
 
 ## classify true negatives
 data$type=ifelse(data$studies>0 & data$hPCR==0 & data$competence==0,"true negative","other")
@@ -550,11 +550,11 @@ pcr_brts=lapply(1:smax,function(x) brt_part(seed=x,response="hPCR"))
 comp_brts=lapply(1:smax,function(x) brt_part(seed=x,response="competence"))
 
 ## write to files
-saveRDS(pcr_brts,file.path("data", "clean files", "pcr brts.rds"))
-saveRDS(comp_brts,file.path("data", "clean files", "comp brts.rds"))
+saveRDS(pcr_brts,file.path("data", "clean_files", "pcr brts.rds"))
+saveRDS(comp_brts,file.path("data", "clean_files", "comp brts.rds"))
 
 ## run wos brts
 pm_brts=lapply(1:(smax-1),function(x) brt_part(seed=x,response="cites"))
 
 ## write
-saveRDS(pm_brts,file.path("data", "clean files", "pm brts.rds"))
+saveRDS(pm_brts,file.path("data", "clean_files", "pm brts.rds"))
