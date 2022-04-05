@@ -15,7 +15,7 @@ set.seed(12345)
 
 # Read in the data
 
-pred <- read_csv(file.path("data", "clean files", "hantaro predictions.csv"))
+pred <- read_csv(file.path("data", "clean_files", "hantaro predictions.csv"))
 
 # 1. Threshold the results
 
